@@ -252,6 +252,35 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .ok { color: var(--ok); }
 .bad { color: var(--danger); }
 
+/* 并发槽位灯：与后端槽位探针同刷，满格红、有余绿 */
+.slot-lamp {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.lamp-free { color: var(--ok); background: rgba(29, 122, 92, 0.1); }
+.lamp-full { color: var(--danger); background: rgba(179, 58, 43, 0.12); }
+tr.row-full { background: rgba(179, 58, 43, 0.06); }
+.slot-bar { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.9rem; }
+.slot-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--post);
+  background: #fff;
+  padding: 0.5rem 0.8rem;
+  min-width: 132px;
+}
+.slot-chip.chip-full { border-top-color: var(--danger); background: rgba(179, 58, 43, 0.05); }
+.chip-name { font-size: 0.82rem; color: var(--muted); }
+.chip-num { font-family: 'ZCOOL QingKe HuangYou', sans-serif; font-size: 1.35rem; color: var(--post-deep); }
+.chip-lamp { font-size: 0.78rem; }
+.chip-full .chip-lamp { color: var(--danger); }
+.chip-free .chip-lamp { color: var(--ok); }
+
 @media (max-width: 760px) {
   .mast {
     grid-template-columns: 52px 1fr;

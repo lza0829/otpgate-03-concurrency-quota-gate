@@ -12,6 +12,7 @@ from app.routers import (
     route,
     sends,
     settings,
+    slots,
 )
 from app.seed import seed_if_empty
 
@@ -19,7 +20,7 @@ seed_if_empty()
 
 app = FastAPI(title=PROJECT_NAME)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-for mod in (dashboard, channels, route, sends, breaker, receipts, reconcile, settings, audit):
+for mod in (dashboard, channels, route, sends, breaker, receipts, reconcile, settings, slots, audit):
     app.include_router(mod.router, prefix="/api")
 
 

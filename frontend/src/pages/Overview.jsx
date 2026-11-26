@@ -28,17 +28,22 @@ export default function Overview() {
           </tbody>
         </table>
       </div>
-      <h2>通道态势</h2>
+      <h2>通道态势 · 槽位在途</h2>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>代号</th><th>名称</th><th>角色</th><th>状态</th><th>权重</th><th>连续失败</th></tr></thead>
+          <thead><tr><th>代号</th><th>名称</th><th>角色</th><th>状态</th><th>槽位上限</th><th>在途占用</th><th>剩余名额</th><th>槽位灯</th></tr></thead>
           <tbody>
             {(data.通道 || []).map((c) => (
-              <tr key={c.代号}><td>{c.代号}</td><td>{c.名称}</td><td>{c.角色}</td><td>{c.状态}</td><td>{c.权重}</td><td>{c.连续失败}</td></tr>
+              <tr key={c.通道编号} className={c.满槽 ? 'row-full' : ''}>
+                <td>#{c.通道编号}</td><td>{c.通道}</td><td>{c.角色}</td><td>{c.通道状态}</td>
+                <td>{c.槽位上限}</td><td><strong>{c.在途占用}</strong></td><td>{c.剩余名额}</td>
+                <td><span className={`slot-lamp ${c.满槽 ? 'lamp-full' : 'lamp-free'}`}>{c.满槽 ? '满格' : `余 ${c.剩余名额}`}</span></td>
+              </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <div className="row msg">口径：{data.口径}｜溢出在途 {data.溢出在途}｜累计拒投 {data.拒投数}</div>
       <div className="row"><button type="button" className="secondary" onClick={load}>刷新</button></div>
     </div>
   )

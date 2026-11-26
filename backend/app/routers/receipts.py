@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.db import db, rows_to_list
 from app.services.common import audit, get_setting, now_str
+from app.services.slots import channel_slots
 
 router = APIRouter(tags=["回执"])
 
@@ -70,4 +71,6 @@ def add_receipt(sid: int, body: ReceiptBody):
                     (ch_id,),
                 )
         audit(conn, "回执", sid, body.结果, body.厂商码)
-    return {"结果": "回执已记"}
+        # 回执使单据离开投递中即释放名额；同事务回带槽位探针，名额增减与回执同刷可重放
+        probe = channel_slots(conn, ch_id)
+    return {"结果": "回执已记", "槽位": probe}

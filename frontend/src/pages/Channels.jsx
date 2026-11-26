@@ -8,22 +8,34 @@ export default function Channels() {
   useEffect(() => { load() }, [])
   const patch = async (id, body) => {
     try {
-      await api(`/通道/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
-      setMsg('已更新')
+      const r = await api(`/通道/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+      setMsg(`已更新｜在途 ${r.槽位.在途占用}/${r.槽位.槽位上限}，剩余 ${r.槽位.剩余名额}`)
       load()
     } catch (e) { setMsg(e.message) }
   }
   return (
     <div className="panel">
       <h2>通道册</h2>
-      <p className="msg">主备短信通道登记、启停与恢复</p>
+      <p className="msg">主备短信通道登记、启停与恢复｜槽位闸口径：硬闸拒收-零溢出（满槽整笔拒投，不留假占用）</p>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>名称</th><th>角色</th><th>状态</th><th>权重</th><th>并发上限</th><th>连续失败</th><th>操作</th></tr></thead>
+          <thead><tr>
+            <th>名称</th><th>角色</th><th>状态</th><th>权重</th>
+            <th>槽位上限</th><th>在途占用</th><th>剩余名额</th><th>槽位灯</th><th>连续失败</th><th>操作</th>
+          </tr></thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.编号}>
-                <td>{r.名称}</td><td>{r.角色}</td><td>{r.状态}</td><td>{r.权重}</td><td>{r.并发上限}</td><td>{r.连续失败}</td>
+              <tr key={r.编号} className={r.满槽 ? 'row-full' : ''}>
+                <td>{r.名称}</td><td>{r.角色}</td><td>{r.状态}</td><td>{r.权重}</td>
+                <td>{r.并发上限}</td>
+                <td><strong>{r.在途占用}</strong></td>
+                <td>{r.剩余名额}</td>
+                <td>
+                  <span className={`slot-lamp ${r.满槽 ? 'lamp-full' : 'lamp-free'}`}>
+                    {r.满槽 ? '满格' : `余 ${r.剩余名额}`}
+                  </span>
+                </td>
+                <td>{r.连续失败}</td>
                 <td className="row">
                   <button type="button" className="secondary" onClick={() => patch(r.编号, { 状态: '启用' })}>启用</button>
                   <button type="button" className="secondary" onClick={() => patch(r.编号, { 状态: '停用' })}>停用</button>

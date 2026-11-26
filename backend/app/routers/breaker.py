@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.db import db, rows_to_list
 from app.services.common import audit, get_setting, now_str
+from app.services.slots import channel_slots
 
 router = APIRouter(tags=["熔断"])
 
@@ -75,7 +76,10 @@ def mark_fail(sid: int, body: FailBody):
                     (backup["id"], sid, now_str(), f"自 {ch['name']} 切至 {backup['name']}"),
                 )
                 audit(conn, "熔断", sid, "切备", backup["name"])
-                return {"结果": "已切备", "备通道": backup["name"], "原通道熔断": True}
+                # 原通道名额随离开投递中而释放，切备单重新投递前不占备路名额
+                return {"结果": "已切备", "备通道": backup["name"], "原通道熔断": True,
+                        "原通道槽位": channel_slots(conn, ch["id"]),
+                        "备通道槽位": channel_slots(conn, backup["id"])}
             allow = get_setting(conn, "允许双挂硬投", "否")
             if allow != "是":
                 conn.execute(
@@ -83,13 +87,15 @@ def mark_fail(sid: int, body: FailBody):
                     (now_str(), sid),
                 )
                 audit(conn, "熔断", sid, "双挂失败", body.备注)
-                return {"结果": "已失败", "原因": "无可用备通道"}
+                return {"结果": "已失败", "原因": "无可用备通道",
+                        "槽位": channel_slots(conn, ch["id"])}
         conn.execute(
             "UPDATE sends SET status='已失败', finished_at=? WHERE id=?",
             (now_str(), sid),
         )
         audit(conn, "熔断", sid, "失败", body.备注)
-    return {"结果": "已失败", "连续失败": fails, "已熔断": tripped}
+    return {"结果": "已失败", "连续失败": fails, "已熔断": tripped,
+            "槽位": channel_slots(conn, ch["id"])}
 
 
 @router.post("/通道/{cid}/恢复")

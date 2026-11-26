@@ -1,6 +1,7 @@
 from __future__ import annotations
 from fastapi import APIRouter
 from app.db import db, rows_to_list
+from app.services.slots import SLOT_POLICY, all_channel_slots
 
 router = APIRouter(tags=["总览"])
 
@@ -27,13 +28,15 @@ def overview():
                 """
             ).fetchall()
         )
-        chans = rows_to_list(
-            conn.execute(
-                """
-                SELECT code AS 代号, name AS 名称, role AS 角色, status AS 状态,
-                       weight AS 权重, consecutive_fails AS 连续失败
-                FROM channels ORDER BY role, id
-                """
-            ).fetchall()
-        )
-    return {"分布": dist, "在途": inflight, "通道": chans}
+        # 通道态势直接挂同源槽位探针：路况在途格与通道册槽位列、投递闸同刷
+        chans = all_channel_slots(conn)
+        overflow = conn.execute("SELECT COUNT(*) c FROM overflow_tickets").fetchone()["c"]
+        rejected = conn.execute("SELECT COUNT(*) c FROM dispatch_rejections").fetchone()["c"]
+    return {
+        "口径": SLOT_POLICY,
+        "分布": dist,
+        "在途": inflight,
+        "通道": chans,
+        "溢出在途": overflow,
+        "拒投数": rejected,
+    }

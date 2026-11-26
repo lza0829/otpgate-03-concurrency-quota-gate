@@ -68,14 +68,50 @@ CREATE TABLE IF NOT EXISTS audit_events (
   created_at TEXT NOT NULL,
   note TEXT NOT NULL DEFAULT ''
 );
+-- 满槽拒因挂接：口径A（硬闸拒收）下每一笔被槽位闸拦下的投递都在此留痕
+CREATE TABLE IF NOT EXISTS dispatch_rejections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  send_id INTEGER NOT NULL,
+  channel_id INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  inflight INTEGER NOT NULL,
+  concurrency_limit INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(send_id) REFERENCES sends(id),
+  FOREIGN KEY(channel_id) REFERENCES channels(id)
+);
+-- 溢出票位：口径A 下永不写入，保持为空本身即是「无超槽、无假成功占用」的可核夹具
+CREATE TABLE IF NOT EXISTS overflow_tickets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  send_id INTEGER NOT NULL,
+  channel_id INTEGER NOT NULL,
+  inflight_at_issue INTEGER NOT NULL,
+  concurrency_limit INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  note TEXT NOT NULL DEFAULT '',
+  FOREIGN KEY(send_id) REFERENCES sends(id),
+  FOREIGN KEY(channel_id) REFERENCES channels(id)
+);
+-- 投递幂等档：同键重放首次结局（含状态码与响应体），双投/重试只许一种结局
+CREATE TABLE IF NOT EXISTS idempotency_records (
+  idempotency_key TEXT PRIMARY KEY,
+  endpoint TEXT NOT NULL,
+  status_code INTEGER NOT NULL,
+  response_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
 """
 
 
 def connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=5)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
+    # WAL 允许旁读探针在写事务进行时同刷；busy_timeout 让并发写者排队而非直接报错
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 
